@@ -42,8 +42,7 @@ internal class Repository
                 departmentModel.ManagerID = employee?.ID ?? null;
                 departmentModel.ParentID = parentDep?.ID ?? null;
 
-                var existDep = _context.Departments.AsNoTracking()
-                                                   .FirstOrDefault(x => x.Name.Equals(departmentModel.Name) &&
+                var existDep = _context.Departments.FirstOrDefault(x => x.Name.Equals(departmentModel.Name) &&
                                                                         x.ParentID.Equals(departmentModel.ParentID));
                 if (existDep != null)
                 {
@@ -78,8 +77,7 @@ internal class Repository
                 empModels[i].Department = department.ID;
                 empModels[i].JobTitle = jobTitle.ID;
 
-                var existEmp = _context.Employees.AsNoTracking()
-                                                 .FirstOrDefault(x => x.FullName.Equals(empModels[i].FullName));
+                var existEmp = _context.Employees.FirstOrDefault(x => x.FullName.Equals(empModels[i].FullName));
                 if (existEmp != null)
                 {
                     existEmp.Password = empModels[i].Password;

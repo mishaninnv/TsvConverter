@@ -22,41 +22,59 @@ internal class TsvConverter
     /// Конвертировать TSV в  <see cref="List{}"/> where T: <see cref="JobTitleModel"/>.
     /// </summary>
     /// <returns> Cписок <see cref="List{}"/> where T: <see cref="JobTitleModel"/>. </returns>
-    public List<JobTitleModel> ConvertToListJobTitleModels() =>
-           _data.Select(line =>
+    public List<JobTitleModel> ConvertToListJobTitleModels()
+    {
+        if (_data[0].Length != 1) 
+        {
+            throw new ArgumentException("Переданы некорректные данные.");
+        }
+        return _data.Select(line =>
                         new JobTitleModel() { Name = _textInfo.ToTitleCase(_textInfo.ToLower(line[0])) })
                 .ToList();
+    }
 
     /// <summary>
     /// Конвертировать TSV в  <see cref="List{}"/> where T: <see cref="EmployeeModel"/>.
     /// </summary>
     /// <returns> Cписок <see cref="List{}"/> where T: <see cref="EmployeeModel"/>. </returns>
-    public List<EmployeeModel> ConvertToEmployeeModel() =>
-           _data.Select(line => 
-                        new EmployeeModel()
-                        {
-                            DepartmentName = _textInfo.ToTitleCase(_textInfo.ToLower(line[0])),
-                            FullName = _textInfo.ToTitleCase(_textInfo.ToLower(line[1])),
-                            Login = line[2],
-                            Password = line[3],
-                            JobTitleName = _textInfo.ToTitleCase(_textInfo.ToLower(line[4]))
-                        })
-                .ToList();
+    public List<EmployeeModel> ConvertToEmployeeModel()
+    {
+        if (_data[0].Length != 5) 
+        {
+            throw new ArgumentException("Переданы некорректные данные.");
+        }
+        return _data.Select(line =>
+                     new EmployeeModel()
+                     {
+                         DepartmentName = _textInfo.ToTitleCase(_textInfo.ToLower(line[0])),
+                         FullName = _textInfo.ToTitleCase(_textInfo.ToLower(line[1])),
+                         Login = line[2],
+                         Password = line[3],
+                         JobTitleName = _textInfo.ToTitleCase(_textInfo.ToLower(line[4]))
+                     })
+             .ToList();
+    }
 
     /// <summary>
     /// Конвертировать TSV в  <see cref="List{}"/> where T: <see cref="DepartmentModel"/>.
     /// </summary>
     /// <returns> Cписок <see cref="List{}"/> where T: <see cref="DepartmentModel"/>. </returns>
-    public List<DepartmentModel> ConvertToDepartmentModel() =>
-           _data.Select(line => 
-                        new DepartmentModel()
-                        {
-                            Name = _textInfo.ToTitleCase(_textInfo.ToLower(line[0])),
-                            Parent = _textInfo.ToTitleCase(_textInfo.ToLower(line[1])),
-                            Manager = _textInfo.ToTitleCase(_textInfo.ToLower(line[2])),
-                            Phone = line[3]
-                        })
-                .ToList();
+    public List<DepartmentModel> ConvertToDepartmentModel()
+    {
+        if (_data[0].Length != 4)
+        {
+            throw new ArgumentException("Переданы некорректные данные.");
+        }
+        return _data.Select(line =>
+                     new DepartmentModel()
+                     {
+                         Name = _textInfo.ToTitleCase(_textInfo.ToLower(line[0])),
+                         Parent = _textInfo.ToTitleCase(_textInfo.ToLower(line[1])),
+                         Manager = _textInfo.ToTitleCase(_textInfo.ToLower(line[2])),
+                         Phone = line[3]
+                     })
+             .ToList();
+    }
 
     /// <summary>
     /// Загрузка данных из TSV файла.
@@ -66,7 +84,6 @@ internal class TsvConverter
     private List<string[]> LoadDataFromTsv(string filePath)
     {
         var data = File.ReadAllLines(filePath);
-
         return data.Skip(1)
                    .Select(line =>
                            line.Split('\t')
