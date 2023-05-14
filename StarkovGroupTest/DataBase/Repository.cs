@@ -1,4 +1,5 @@
-﻿using StarkovGroupTest.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using StarkovGroupTest.Models;
 
 namespace StarkovGroupTest.DataBase;
 
@@ -15,37 +16,44 @@ internal class Repository
     {
         foreach (var jobTitleModel in jobTitleModels)
         {
-            if (_context.JobTitle.FirstOrDefault(x => x.Name.Equals(jobTitleModel.Name)) != null)
+            var existJobTitle = _context.JobTitle.AsNoTracking()
+                                                 .FirstOrDefault(x => x.Name.Equals(jobTitleModel.Name));
+            if (existJobTitle != null)
             {
                 continue;
             }
             _context.JobTitle.Add(jobTitleModel);
-            _context.SaveChanges();
         }
+        Save();
     }
 
     public void AddDepartments(List<DepartmentModel> departmentModels)
     {
         foreach (var departmentModel in departmentModels)
         {
-            var department = _context.Departments.Where(x => x.Name == departmentModel.Parent).FirstOrDefault();
-            var employee = _context.Employees.Where(x => x.FullName.Equals(departmentModel.Manager)).FirstOrDefault();
-            if (department != null || string.IsNullOrWhiteSpace(departmentModel.Parent))
-            {
-                departmentModel.ParentID = department?.ID ?? null;
-                departmentModel.ManagerID = employee?.ID ?? null;
+            var parentDep = _context.Departments.AsNoTracking()
+                                                 .FirstOrDefault(x => x.Name == departmentModel.Parent);
 
-                var existing = _context.Departments.FirstOrDefault(x => x.Name.Equals(departmentModel.Name) &&
-                                                                       x.ParentID.Equals(departmentModel.ParentID));
-                if (existing != null)
+            if (parentDep != null || string.IsNullOrWhiteSpace(departmentModel.Parent))
+            {
+                var employee = _context.Employees.AsNoTracking()
+                                                 .FirstOrDefault(x => x.FullName.Equals(departmentModel.Manager));
+
+                departmentModel.ManagerID = employee?.ID ?? null;
+                departmentModel.ParentID = parentDep?.ID ?? null;
+
+                var existDep = _context.Departments.AsNoTracking()
+                                                   .FirstOrDefault(x => x.Name.Equals(departmentModel.Name) &&
+                                                                        x.ParentID.Equals(departmentModel.ParentID));
+                if (existDep != null)
                 {
-                    existing.ManagerID = departmentModel.ManagerID;
+                    existDep.ManagerID = departmentModel.ManagerID;
                 }
                 else 
                 {
                     _context.Departments.Add(departmentModel);
                 }
-                _context.SaveChanges();
+                Save();
             }
             else 
             {
@@ -56,56 +64,73 @@ internal class Repository
         }
     }
 
-    public void AddEmployees(List<EmployeeModel> employeeModels)
+    public void AddEmployees(List<EmployeeModel> empModels)
     {
-        foreach (var employeeModel in employeeModels)
+        for (var i = 0; i < empModels.Count; i++)
         {
-            var department = _context.Departments.Where(x => x.Name.Equals(employeeModel.DepartmentName)).FirstOrDefault();
-            var jobTitle = _context.JobTitle.Where(x => x.Name.Equals(employeeModel.JobTitleName)).FirstOrDefault();
+            var department = _context.Departments.AsNoTracking()
+                                                 .FirstOrDefault(x => x.Name.Equals(empModels[i].DepartmentName));
+            var jobTitle = _context.JobTitle.AsNoTracking()
+                                            .FirstOrDefault(x => x.Name.Equals(empModels[i].JobTitleName));
 
             if (department != null && jobTitle != null)
             {
-                employeeModel.Department = department.ID;
-                employeeModel.JobTitle = jobTitle.ID;
+                empModels[i].Department = department.ID;
+                empModels[i].JobTitle = jobTitle.ID;
 
-                var existing = _context.Employees.FirstOrDefault(x => x.FullName.Equals(employeeModel.FullName));
-                if (existing != null)
+                var existEmp = _context.Employees.AsNoTracking()
+                                                 .FirstOrDefault(x => x.FullName.Equals(empModels[i].FullName));
+                if (existEmp != null)
                 {
-                    existing.Password = employeeModel.Password;
-                    existing.Department = employeeModel.Department;
+                    existEmp.Password = empModels[i].Password;
+                    existEmp.Department = empModels[i].Department;
                 }
                 else
                 {
-                    _context.Employees.Add(employeeModel);
+                    _context.Employees.Add(empModels[i]);
                 }
-                _context.SaveChanges();
+
+                if (i % 1000 == 0)
+                {
+                    Save();
+                }
             }
             else
             {
-                Console.Error.WriteLine($"Запись name - {employeeModel.FullName}, " +
-                                        $"department - {employeeModel.DepartmentName}, " +
-                                        $"job title - {employeeModel.JobTitleName}, " +
-                                        $"login - {employeeModel.Login} не обработана.");
+                Console.Error.WriteLine($"Запись name - {empModels[i].FullName}, " +
+                                        $"department - {empModels[i].DepartmentName}, " +
+                                        $"job title - {empModels[i].JobTitleName}, " +
+                                        $"login - {empModels[i].Login} не обработана.");
             }
         }
+        Save();
     }
 
     public List<DepartmentModel> GetDepartments() => 
-        _context.Departments.OrderBy(x => x.ID).ThenBy(x => x.Name).ToList();
+        _context.Departments.AsNoTracking()
+                            .OrderBy(x => x.ID)
+                            .ThenBy(x => x.Name)
+                            .ToList();
 
     public DepartmentModel GetDepartment(int id) => 
-        _context.Departments.FirstOrDefault(x => x.ID == id) ?? new DepartmentModel();
+        _context.Departments.AsNoTracking()
+                            .FirstOrDefault(x => x.ID == id) ?? new DepartmentModel();
 
 
     public List<EmployeeModel> GetEmployees(int departmentId) =>
-        _context.Employees.Where(x => x.Department == departmentId)
+        _context.Employees.AsNoTracking()
+                          .Where(x => x.Department == departmentId)
                           .OrderBy(x => x.FullName)
                           .ToList();
 
 
     public EmployeeModel GetEmployee(int employeeId) =>
-        _context.Employees.FirstOrDefault(x => x.ID == employeeId) ?? new EmployeeModel();
+        _context.Employees.AsNoTracking()
+                          .FirstOrDefault(x => x.ID == employeeId) ?? new EmployeeModel();
 
     public JobTitleModel GetJobTitle(int jobId) =>
-        _context.JobTitle.FirstOrDefault(x => x.ID == jobId) ?? new JobTitleModel();
+        _context.JobTitle.AsNoTracking()
+                         .FirstOrDefault(x => x.ID == jobId) ?? new JobTitleModel();
+
+    private void Save() => _context.SaveChanges();
 }
